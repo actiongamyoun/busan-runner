@@ -17,6 +17,8 @@ type Props = {
   meets: Meet[];
   marketItems: MarketItemWithMeta[];
   onEditProfile: () => void;
+  /** 홈 통합 모드: 프로필 카드+통계만 표시, 탭 숨김 */
+  compact?: boolean;
 };
 
 function calcDday(dateStr: string): number {
@@ -25,7 +27,7 @@ function calcDday(dateStr: string): number {
   return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export function ProfilePanel({ courses, likedIds, savedIds, crews, joinedCrewIds, meets, marketItems, onEditProfile }: Props) {
+export function ProfilePanel({ courses, likedIds, savedIds, crews, joinedCrewIds, meets, marketItems, onEditProfile, compact = false }: Props) {
   const { t, lang, sessionId, profile } = useApp();
   const [tab, setTab] = useState<Tab>('liked');
 
@@ -56,6 +58,55 @@ export function ProfilePanel({ courses, likedIds, savedIds, crews, joinedCrewIds
     { key: 'meets', label: t('my.tab.meets') },
     { key: 'market', label: t('my.tab.market') },
   ];
+
+  const profileCard = (
+    <div className="profile-card">
+      <div className="profile-avatar" style={{ background: profile.color }}>
+        {displayNick.charAt(0) || 'R'}
+      </div>
+      <div className="profile-info">
+        <h2>{displayNick}</h2>
+        <div className="profile-sid">{t('my.session')}{sessionId.slice(0, 12)}</div>
+        <button className="profile-edit" onClick={onEditProfile}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+          </svg>
+          {t('my.edit')}
+        </button>
+      </div>
+    </div>
+  );
+
+  const statsBar = (
+    <div className="profile-stats">
+      <div className="profile-stat">
+        <div className="n serif">{likedIds.size}</div>
+        <div className="l">{t('my.stat.liked')}</div>
+      </div>
+      <div className="profile-stat">
+        <div className="n serif">{myCrewsIds.size}</div>
+        <div className="l">{t('my.stat.crews')}</div>
+      </div>
+      <div className="profile-stat">
+        <div className="n serif">{myMeets.length}</div>
+        <div className="l">{t('my.stat.meets')}</div>
+      </div>
+      <div className="profile-stat">
+        <div className="n serif">{myMarketItems.length}</div>
+        <div className="l">{t('my.stat.market')}</div>
+      </div>
+    </div>
+  );
+
+  // 홈 compact 모드: 카드 + 통계만
+  if (compact) {
+    return (
+      <section className="section" style={{ paddingBottom: 0 }}>
+        {profileCard}
+        {statsBar}
+      </section>
+    );
+  }
 
   const renderContent = () => {
     if (tab === 'liked' || tab === 'saved') {
@@ -112,7 +163,6 @@ export function ProfilePanel({ courses, likedIds, savedIds, crews, joinedCrewIds
             if (dday === 0) ddayText = t('crew.dday.today');
             else if (dday === 1) ddayText = t('crew.dday.tomorrow');
             else ddayText = `D-${dday}`;
-
             const tail = isMine
               ? `${t('my.crew.sub.recruiting')}${ddayText}`
               : t('my.crew.sub.joined');
@@ -205,40 +255,8 @@ export function ProfilePanel({ courses, likedIds, savedIds, crews, joinedCrewIds
         <p>{t('my.page.desc')}</p>
       </header>
 
-      <div className="profile-card">
-        <div className="profile-avatar" style={{ background: profile.color }}>
-          {displayNick.charAt(0) || 'R'}
-        </div>
-        <div className="profile-info">
-          <h2>{displayNick}</h2>
-          <div className="profile-sid">{t('my.session')}{sessionId.slice(0, 12)}</div>
-          <button className="profile-edit" onClick={onEditProfile}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-            </svg>
-            {t('my.edit')}
-          </button>
-        </div>
-      </div>
-
-      <div className="profile-stats">
-        <div className="profile-stat">
-          <div className="n serif">{likedIds.size}</div>
-          <div className="l">{t('my.stat.liked')}</div>
-        </div>
-        <div className="profile-stat">
-          <div className="n serif">{myCrewsIds.size}</div>
-          <div className="l">{t('my.stat.crews')}</div>
-        </div>
-        <div className="profile-stat">
-          <div className="n serif">{myMeets.length}</div>
-          <div className="l">{t('my.stat.meets')}</div>
-        </div>
-        <div className="profile-stat">
-          <div className="n serif">{myMarketItems.length}</div>
-          <div className="l">{t('my.stat.market')}</div>
-        </div>
-      </div>
+      {profileCard}
+      {statsBar}
 
       <div className="my-tabs">
         {tabs.map(tb => (
