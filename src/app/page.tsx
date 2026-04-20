@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useApp } from '@/components/AppProvider';
 import { Hero } from '@/components/Hero';
 import { CourseGrid } from '@/components/CourseGrid';
-import { CourseModal } from '@/components/CourseModal';
 import { MeetList } from '@/components/MeetList';
 import { MeetCreateModal } from '@/components/MeetCreateModal';
 import { CrewGrid } from '@/components/CrewGrid';
@@ -19,15 +18,16 @@ import { useCourses, useCourseLikes, useCourseSaves } from '@/lib/hooks/useCours
 import { useMeets } from '@/lib/hooks/useMeets';
 import { useCrews } from '@/lib/hooks/useCrews';
 import { useMarket } from '@/lib/hooks/useMarket';
-import type { Course, Crew } from '@/lib/database.types';
+import { useRouter } from 'next/navigation';
+import type { Crew } from '@/lib/database.types';
 
 export default function HomePage() {
   const { t, view, sessionId, showToast, lang, profile } = useApp();
+  const router = useRouter();
 
   // 공통 상태
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [meetModalOpen, setMeetModalOpen] = useState(false);
   const [crewModalOpen, setCrewModalOpen] = useState(false);
   const [crewToJoin, setCrewToJoin] = useState<Crew | null>(null);
@@ -55,27 +55,14 @@ export default function HomePage() {
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [view]);
 
   // 핸들러
-  const handleStartHero = () => {
-    if (courses.length > 0) setSelectedCourse(courses[0]);
-  };
-
   const handleCourseLike = async (id: number) => {
     const wasLiked = likedIds.has(id);
     await toggleLike(id);
     showToast(wasLiked ? t('market.unliked') : t('market.liked'));
   };
 
-  const handleCourseModalSave = async () => {
-    if (!selectedCourse) return;
-    const nowSaved = await toggleSave(selectedCourse.id);
-    showToast(nowSaved ? t('course.save.toast') : t('course.unsave.toast'));
-  };
-
-  const handleCourseModalStart = () => {
-    if (!selectedCourse) return;
-    const n = lang === 'en' ? (selectedCourse.name_en || selectedCourse.name) : selectedCourse.name;
-    showToast(`${t('course.start.toast.prefix')}${n}${t('course.start.toast.suffix')}`);
-    setSelectedCourse(null);
+  const handleCourseCardClick = (id: number) => {
+    router.push(`/courses/${id}`);
   };
 
   const handleMeetJoinToggle = async (id: number) => {
@@ -140,10 +127,25 @@ export default function HomePage() {
 
   return (
     <>
-      {/* HOME VIEW */}
+      {/* HOME VIEW — 히어로 + 프로필 + 코스 + 모임 */}
       {view === 'home' && (
         <>
-          <Hero onStart={handleStartHero} />
+          <Hero onStart={() => {
+            if (courses.length > 0) router.push(`/courses/${courses[0].id}`);
+          }} />
+
+          {/* 프로필 카드 (MY 통합) */}
+          <ProfilePanel
+            courses={courses}
+            likedIds={likedIds}
+            savedIds={savedIds}
+            crews={crews}
+            joinedCrewIds={crewJoinedIds}
+            meets={meets}
+            marketItems={marketItems}
+            onEditProfile={() => setProfileEditOpen(true)}
+            compact
+          />
 
           <div className="search-row">
             <div className={`search-box ${search ? 'has-value' : ''}`}>
@@ -187,7 +189,7 @@ export default function HomePage() {
                 search={search}
                 onFilterChange={setFilter}
                 onLikeToggle={handleCourseLike}
-                onCardClick={setSelectedCourse}
+                onCardClick={(c) => handleCourseCardClick(c.id)}
               />
             )}
           </section>
@@ -216,6 +218,49 @@ export default function HomePage() {
               onDelete={handleMeetDelete}
             />
           </section>
+        </>
+      )}
+
+      {/* COURSES VIEW */}
+      {view === 'courses' && (
+        <>
+          <header className="page-header">
+            <div className="section-num serif">{t('section.routes.num')}</div>
+            <h1 className="serif">
+              <span>{t('section.routes.title.1')}</span>
+              <em>{t('section.routes.title.2')}</em>
+              <span>{t('section.routes.title.3')}</span>
+            </h1>
+          </header>
+
+          <div className="search-row">
+            <div className={`search-box ${search ? 'has-value' : ''}`}>
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={t('search.placeholder')}
+              />
+              <button className="search-clear" onClick={() => setSearch('')} aria-label="clear">✕</button>
+            </div>
+          </div>
+
+          {coursesLoading ? (
+            <div className="empty"><div>{t('common.loading')}</div></div>
+          ) : (
+            <CourseGrid
+              courses={courses}
+              likedIds={likedIds}
+              filter={filter}
+              search={search}
+              onFilterChange={setFilter}
+              onLikeToggle={handleCourseLike}
+              onCardClick={(c) => handleCourseCardClick(c.id)}
+            />
+          )}
         </>
       )}
 
@@ -305,28 +350,7 @@ export default function HomePage() {
         </>
       )}
 
-      {/* PROFILE VIEW */}
-      {view === 'profile' && (
-        <ProfilePanel
-          courses={courses}
-          likedIds={likedIds}
-          savedIds={savedIds}
-          crews={crews}
-          joinedCrewIds={crewJoinedIds}
-          meets={meets}
-          marketItems={marketItems}
-          onEditProfile={() => setProfileEditOpen(true)}
-        />
-      )}
-
       {/* 공통 모달 */}
-      <CourseModal
-        course={selectedCourse}
-        isSaved={selectedCourse ? savedIds.has(selectedCourse.id) : false}
-        onClose={() => setSelectedCourse(null)}
-        onToggleSave={handleCourseModalSave}
-        onStart={handleCourseModalStart}
-      />
       <MeetCreateModal
         open={meetModalOpen}
         courses={courses}
