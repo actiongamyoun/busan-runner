@@ -1,9 +1,6 @@
 // ============================================================
 // Supabase 테이블 타입 정의
 // ============================================================
-// 실제 Supabase CLI로 생성하려면:
-//   npx supabase gen types typescript --project-id YOUR_REF > src/lib/database.types.ts
-// ============================================================
 
 export type Course = {
   id: number;
@@ -27,6 +24,8 @@ export type Course = {
   image_url: string | null;
   color_primary: string | null;
   color_light: string | null;
+  lat: number | null;   // ← 추가
+  lng: number | null;   // ← 추가
   created_at: string;
 };
 
@@ -34,8 +33,8 @@ export type Meet = {
   id: number;
   creator_session: string;
   title: string;
-  meet_date: string; // YYYY-MM-DD
-  meet_time: string; // HH:MM:SS
+  meet_date: string;
+  meet_time: string;
   course_id: number | null;
   course_name: string | null;
   spots: number;
@@ -59,7 +58,8 @@ export type Crew = {
   theme: string | null;
   member_limit: number;
   joined: number;
-  recruit_until: string; // YYYY-MM-DD
+  recruit_until: string;
+  type: '단기' | '장기' | null;  // ← 추가
   created_at: string;
 };
 
