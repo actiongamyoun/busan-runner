@@ -13,6 +13,8 @@ export type Profile = {
   icon: string;
 };
 
+export type ViewType = 'home' | 'courses' | 'crew' | 'market'; // ← courses 추가, profile 제거
+
 type AppContextValue = {
   sessionId: string;
   lang: Lang;
@@ -21,7 +23,7 @@ type AppContextValue = {
   setProfile: (p: Profile) => void;
   t: (key: string) => string;
   showToast: (msg: string) => void;
-  view: string;
+  view: ViewType;
   setView: (v: string) => void;
   colors: string[];
 };
@@ -40,7 +42,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfileState] = useState<Profile>({ nickname: '익명러너', color: PROFILE_COLORS[0], icon: 'R' });
   const [toastMsg, setToastMsg] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
-  const [view, setView] = useState('home');
+  const [view, setViewState] = useState<ViewType>('home');
 
   // 초기 로드 (브라우저에서만)
   useEffect(() => {
@@ -102,6 +104,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setToastVisible(true);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastVisible(false), 2200);
+  }, []);
+
+  // view 세터 — 문자열로 받아서 ViewType으로 안전하게 캐스팅
+  const setView = useCallback((v: string) => {
+    const valid: ViewType[] = ['home', 'courses', 'crew', 'market'];
+    if (valid.includes(v as ViewType)) {
+      setViewState(v as ViewType);
+    }
   }, []);
 
   const value: AppContextValue = {

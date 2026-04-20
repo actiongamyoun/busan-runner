@@ -15,6 +15,7 @@ type Props = {
     description: string; photo_url: string | null; theme: string;
     member_limit: number; recruit_until: string;
     host_nick: string; host_color: string;
+    type: '단기' | '장기';  // ← 추가
   }) => Promise<void>;
 };
 
@@ -30,6 +31,7 @@ export function CrewCreateModal({ open, onClose, onSubmit }: Props) {
   const [memberLimit, setMemberLimit] = useState('15');
   const [recruitUntil, setRecruitUntil] = useState('');
   const [theme, setTheme] = useState<string>('sunrise');
+  const [crewType, setCrewType] = useState<'단기' | '장기'>('장기');  // ← 추가
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
@@ -41,7 +43,7 @@ export function CrewCreateModal({ open, onClose, onSubmit }: Props) {
     if (!open) return;
     setName(''); setArea(''); setLevel('초중급');
     setSchedule(''); setPace(''); setDescription('');
-    setMemberLimit('15'); setTheme('sunrise');
+    setMemberLimit('15'); setTheme('sunrise'); setCrewType('장기');
     setPhotoFile(null); setPhotoPreview(''); setPhotoError('');
     setErrors({});
     const d = new Date(); d.setDate(d.getDate() + 14);
@@ -128,6 +130,7 @@ export function CrewCreateModal({ open, onClose, onSubmit }: Props) {
         recruit_until: recruitUntil,
         host_nick: profile.nickname,
         host_color: profile.color,
+        type: crewType,
       });
       showToast(t('crew.created.toast'));
       onClose();
@@ -159,15 +162,54 @@ export function CrewCreateModal({ open, onClose, onSubmit }: Props) {
             <h2 className="modal-title">{t('crew.modal.title')}</h2>
           </div>
           <button className="modal-close" onClick={onClose} aria-label="close">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
           </button>
         </div>
         <div className="modal-body">
 
+          {/* 크루 타입 선택 — 단기/장기 */}
+          <div className="form-group">
+            <label className="form-label">크루 유형</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(['장기', '단기'] as const).map(tp => (
+                <button
+                  key={tp}
+                  type="button"
+                  onClick={() => setCrewType(tp)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 0',
+                    borderRadius: 12,
+                    border: '1.5px solid',
+                    borderColor: crewType === tp ? 'var(--navy-ink)' : 'var(--line)',
+                    background: crewType === tp ? 'var(--navy-ink)' : 'transparent',
+                    color: crewType === tp ? '#fff' : 'var(--navy-ink)',
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {tp === '장기' ? '🏃 정기 크루' : '⚡ 단기 (1회성)'}
+                </button>
+              ))}
+            </div>
+            <div className="form-hint" style={{ marginTop: 6 }}>
+              {crewType === '장기'
+                ? '매주 정기적으로 함께 달리는 크루예요'
+                : '특정 날짜에 한 번 모이는 번개 모임이에요'}
+            </div>
+          </div>
+
           {/* 사진 업로드 */}
           <div className={`form-group ${photoError ? 'error' : ''}`}>
             <label className="form-label">
-              {t('crew.modal.photo.label')} <span style={{ color: 'var(--mute)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{t('crew.modal.photo.optional')}</span>
+              {t('crew.modal.photo.label')}
+              <span style={{ color: 'var(--mute)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
+                {' '}{t('crew.modal.photo.optional')}
+              </span>
             </label>
             <div className={`img-upload ${photoPreview ? 'has-image' : ''}`}>
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} />
@@ -185,14 +227,16 @@ export function CrewCreateModal({ open, onClose, onSubmit }: Props) {
               )}
               {photoPreview && (
                 <button type="button" className="img-upload-remove" onClick={(e) => { e.stopPropagation(); removePhoto(); }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
                 </button>
               )}
             </div>
             <div className="form-hint">{t('crew.modal.photo.below')}</div>
             {photoError && <div style={{ fontSize: 11, color: '#C84A3C', marginTop: 6 }}>{photoError}</div>}
 
-            {/* 테마 선택 (사진 없을 때 사용) */}
+            {/* 테마 선택 */}
             <div className="theme-picker">
               {THEMES.map(tk => (
                 <button
